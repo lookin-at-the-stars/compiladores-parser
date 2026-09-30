@@ -1,6 +1,6 @@
 # Compiladores Parser
 
-Gabriel Barbosa de Souza
+Gabriel Barbosa de Souza, 
 Lucas Osório Baldoino
 
 Interpretador de uma linguagem aritmética simples, implementado em Python com
