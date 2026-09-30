@@ -1,20 +1,31 @@
 from ply import lex, yacc
-import sys
 
-tokens = ('INT', 'FLOAT', 'MAIS', 'MENOS', 'VEZES', 'DIV', 'ABRE_PAREN', 'FECHA_PAREN', 'ID', 'ATRIBUI')
+tokens = ('INT', 'FLOAT', 'MAIS', 'MENOS', 'VEZES', 'DIV_INT', 'DIV',
+          'ABRE_PAREN', 'FECHA_PAREN', 'ID', 'ATRIBUI', 'PRINT')
+
+reserved = {'print': 'PRINT'}
 
 t_INT = r'\d+'
 t_FLOAT = r'\d+\.\d+'
 t_MAIS = r'\+'
 t_MENOS = r'\-'
 t_VEZES = r'\*'
+t_DIV_INT = r'//'
 t_DIV = r'\/'
 t_ABRE_PAREN = r'\('
 t_FECHA_PAREN = r'\)'
-t_ID = r'[a-zA-Z]+'
 t_ATRIBUI = r'='
 
 t_ignore = '\t \r\n'
+
+def t_COMMENT(token):
+    r'\#[^\n]*'
+    pass
+
+def t_ID(token):
+    r'[a-zA-Z_][a-zA-Z_0-9]*'
+    token.type = reserved.get(token.value, 'ID')
+    return token
 
 def t_error(token):
     raise Exception('Recebi token inválido.')
@@ -33,7 +44,11 @@ def p_stmt_expr(prod):
 
 def p_stmt_atribui(prod):
     'stmt : ID ATRIBUI expr'
-    # criar no prod[0] um objeto do tipo NoAtribui() (que teremos que criar)
+    prod[0] = NoAtribui(prod[1], prod[3])
+
+def p_stmt_print(prod):
+    'stmt : PRINT ABRE_PAREN expr FECHA_PAREN'
+    prod[0] = NoPrint(prod[3])
 
 def p_expr_mais(prod):
     'expr : expr MAIS termo'
@@ -63,6 +78,12 @@ def p_termo_div(prod):
     prod[0].fesq = prod[1]
     prod[0].fdir = prod[3]
 
+def p_termo_div_int(prod):
+    'termo : termo DIV_INT fator'
+    prod[0] = NoOperacao(tipo='//')
+    prod[0].fesq = prod[1]
+    prod[0].fdir = prod[3]
+
 def p_termo_fator(prod):
     'termo : fator'
     prod[0] = prod[1]
@@ -81,24 +102,26 @@ def p_fator_parenteses(prod):
 
 def p_fator_id(prod):
     'fator : ID'
-    # criar no prod[0] objeto do tipo NoVar() (precisa ser criado)
+    prod[0] = NoVar(prod[1])
 
-def p_error(produção):
+def p_error(producao):
     raise SyntaxError('Sintaxe inválida na nossa linguagem!')
-
-print('Digite os statements:')
-
 
 # ao instanciar o parser, podemos falar qual a variável inicial da gramática
 # (mas é opcional porque normalmente ele consegue inferir!)
-parser = yacc.yacc(start='stmt')
+parser = yacc.yacc(start='stmt', write_tables=False, debug=False)
 
 st = {} # tabela de símbolos é instanciada como dicionário vazio
 
-# lê linha por linha da entrada padrão (stdin)
-for linha in sys.stdin:
-    try:
-        resultado = parser.parse(linha.strip())
-        print('Expressão válida! Valor:', resultado.avalia(st))
-    except Exception as e:
-        print(e)
+with open('prog.txt', encoding='utf-8') as programa:
+    for numero, linha in enumerate(programa, start=1):
+        if not linha.strip() or linha.lstrip().startswith('#'):
+            continue
+        try:
+            resultado = parser.parse(linha)
+            if isinstance(resultado, NoPrint):
+                print(resultado.avalia(st))
+            else:
+                resultado.avalia(st)
+        except Exception as e:
+            print(f'Linha {numero}: {e}')

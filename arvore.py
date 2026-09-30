@@ -28,6 +28,8 @@ class NoOperacao(No):
                 return valor_esq * valor_dir
             case '/':
                 return valor_esq / valor_dir
+            case '//':
+                return valor_esq // valor_dir
 
 class NoNum(No):
     def __init__(self, valor : int | float):
@@ -35,3 +37,29 @@ class NoNum(No):
 
     def avalia(self, st : dict) -> int | float:
         return self.valor
+
+class NoVar(No):
+    def __init__(self, nome : str):
+        self.nome = nome
+
+    def avalia(self, st : dict) -> int | float:
+        if self.nome not in st:
+            raise NameError(f'Variável não definida: {self.nome}')
+        return st[self.nome]
+
+class NoAtribui(No):
+    def __init__(self, nome : str, expressao):
+        self.nome = nome
+        self.expressao = expressao
+
+    def avalia(self, st : dict) -> int | float:
+        valor = self.expressao.avalia(st)
+        st[self.nome] = valor
+        return valor
+
+class NoPrint(No):
+    def __init__(self, expressao):
+        self.expressao = expressao
+
+    def avalia(self, st : dict) -> int | float:
+        return self.expressao.avalia(st)

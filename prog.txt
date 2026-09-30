@@ -1,0 +1,5 @@
+# Cálculo de valores
+total = 17 // 3
+restante = 17 / 3
+print(total)
+print(restante + 1)
